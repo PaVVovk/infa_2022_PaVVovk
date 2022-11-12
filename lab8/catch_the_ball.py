@@ -24,6 +24,9 @@ COLORS = [RED, BLUE, YELLOW, GREEN, MAGENTA, CYAN]      #набор цветов
 
 score = 0                                               # начальное значение очков игрока
 
+balls = [] #массив для данных о шарах
+balls_number = 5 #число шаров, которые одновременно появляются на экране
+
 def dist(dot1, dot2):
     '''
     Считает расстояние между 2 точками на плоскости.
@@ -42,25 +45,27 @@ def show_score():
     text_surface = font.render(f'Score:{score}', True, (0, 0, 0))
     screen.blit(text_surface, (50, 20))
 
+
 def click(event):
     '''
     Обрабатывает нажатие левой кнопки мыши.
     В данной версии - увеличивает очки игрока при нажатии в пределах шара,
     а затем генерирует новый шар.
     '''
-    global score
-    if dist(event.pos, (x, y)) < r:
-        score += 1
-        new_ball()
+    global score, balls, balls_number
+    for i in range(balls_number):
+        if dist(event.pos, balls[i][1]) < balls[i][0]:
+            score += 1
+            balls[i] = new_ball()
         
 
 def new_ball():
     '''
-    Рисует новый шарик радиуса r, цвета color,
+    Создает список с данными о шарике радиуса r, цвета color,
     с центром в точке (x, y) и скоростью по осям dx и dy.
     Цвет, радиус, скорость и координаты центра выбираются случайно.
     '''
-    global x, y, dx, dy, r, color
+    #global x, y, dx, dy, r, color
 
     r = randint(10, 100)
     
@@ -71,14 +76,18 @@ def new_ball():
     dy = randint(10,30)
 
     color = COLORS[randint(0, 5)]
+
+    return [r, [x, y], [dx, dy], color]
     
 
-def speed():
+def speed(r, center, speed):
     '''
     Осуществляет изменение положения шарика
     и отскакивание от стенок.
     '''
-    global x, y, dx, dy, r
+    #global x, y, dx, dy, r
+    x, y = center
+    dx, dy = speed
     if (x > WIDTH - r) or (x < r):
         dx *= -1
     if (y > HEIGHT - r) or (y < r):
@@ -86,16 +95,34 @@ def speed():
     x += dx
     y += dy
 
+    return [x, y], [dx, dy]
+
+
+def generate_balls():
+    '''
+    Обрабатывает массив с данными шариков,
+    тем самым меняя их положение на экране.
+    '''
+    global balls, balls_number, screen
+    for i in range(balls_number):
+        if (not balls) or (len(balls) < balls_number):
+            balls.append(new_ball())
+        else:
+            balls[i][1], balls[i][2] = speed(balls[i][0],
+                                             balls[i][1], balls[i][2])
+        print(balls[i])
+        circle(screen, balls[i][-1],
+               balls[i][1], balls[i][0])
+    
 
 screen.fill(WHITE)                      #заполняет стартовый экран белым цветом
-new_ball()                              #создание первого шара
 pygame.display.update()
 
 clock = pygame.time.Clock()
 finished = False
 
 while not finished:
-    circle(screen, color, (x, y), r)
+    generate_balls()
     clock.tick(FPS)
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
@@ -103,7 +130,6 @@ while not finished:
         elif event.type == pygame.MOUSEBUTTONDOWN:
             click(event)
     show_score()
-    speed()
     
     pygame.display.update()
     screen.fill(WHITE)                  #освобождает экран для следующего шага
