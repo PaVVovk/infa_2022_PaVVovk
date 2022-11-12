@@ -7,7 +7,7 @@ pygame.init()
 pygame.font.init()
 font = pygame.font.SysFont('Comic Sans MS', 30) #инициализация шрифта для надписи очков
 
-FPS = 2 #число обновлений кадров в секунду
+FPS = 2     #число обновлений кадров в секунду
 screen = pygame.display.set_mode((1200, 800))
 
 RED = (255, 0, 0)
