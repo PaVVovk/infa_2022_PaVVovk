@@ -45,9 +45,15 @@ class Ball:
         self.x и self.y с учетом скоростей self.vx и self.vy, силы гравитации, действующей на мяч,
         и стен по краям окна (размер окна 800х600).
         """
-        # FIXME
+        if (self.x+self.vx >= WIDTH-self.r) or (self.x+self.vx <= self.r):
+            self.vx *= -1
+        if (self.y-self.vy <= self.r):
+            self.vy *= -1
+
         self.x += self.vx
         self.y -= self.vy
+
+        #self.vy -= gravity_const
 
     def draw(self):
         pygame.draw.circle(
@@ -65,8 +71,7 @@ class Ball:
         Returns:
             Возвращает True в случае столкновения мяча и цели. В противном случае возвращает False.
         """
-        # FIXME
-            return False
+        #FIXME
 
 
 class Gun:
