@@ -3,6 +3,8 @@ from random import choice, randint
 
 import pygame
 
+pygame.font.init()
+font = pygame.font.SysFont('Trebuchet MS', 30)
 
 FPS = 30
 
@@ -19,6 +21,23 @@ GAME_COLORS = [RED, BLUE, YELLOW, GREEN, MAGENTA, CYAN]
 
 WIDTH = 800
 HEIGHT = 600
+
+def dist(dot1, dot2):
+    '''
+    Считает расстояние между 2 точками на плоскости.
+    dot1 - кортеж с координатами точки 1,
+    dot2 - кортеж с координатами точки 2.
+    '''
+    dist = (dot1[0]-dot2[0])**2 + (dot1[1]-dot2[1])**2
+    dist = dist**0.5
+    return dist
+
+def show_score(score):
+    '''
+    Выводит очки игрока в верхний левый угол экрана.
+    '''
+    text_surface = font.render(f'Целей сбито:{score}', True, BLACK)
+    screen.blit(text_surface, (50, 20))
 
 
 class Ball:
@@ -52,11 +71,11 @@ class Ball:
 
 
         if self.y-self.vy >= HEIGHT-self.r:
-            self.y = HEIGHT - self.r + 0.5 #слагаемое 0.5 для компенсации флуктуаций при остановке
+            self.y = HEIGHT - self.r - 0.15 #слагаемое 0.5 для компенсации флуктуаций при остановке
             self.vy *= -0.5
             self.vx *= 0.5
         else:
-            self.vy -= 1
+            self.vy -= 2
 
         if self.x+self.vx >= WIDTH-self.r:
             self.x = WIDTH - self.r
@@ -81,6 +100,9 @@ class Ball:
             Возвращает True в случае столкновения мяча и цели. В противном случае возвращает False.
         '''
         #FIXME
+        if dist((obj.x, obj.y),(self.x, self.y)) < obj.r+self.r:
+            return True
+        return False
 
 
 class Gun:
@@ -130,12 +152,15 @@ class Gun:
         Длина пушки пропорциональна силе выстрела,
         а цвет меняется во время прицеливания.
         '''
-        gun_len = 10 + self.f2_power//2
+        gun_len = 15 + self.f2_power//2
         x_end = 20 + gun_len * math.cos(self.an)
         y_end = 450 + gun_len * math.sin(self.an)
         pygame.draw.line(self.screen, self.color, (20, 450), (x_end, y_end), 10)
 
     def power_up(self):
+        '''
+        Увеличивает силу выстрела при продолжительном прицеливании.
+        '''
         if self.f2_on:
             if self.f2_power < 100:
                 self.f2_power += 1
@@ -145,15 +170,11 @@ class Gun:
 
 
 class Target:
-    # self.points = 0
-    # self.live = 1
-    # FIXME: don't work!!! How to call this functions when object is created?
-    # self.new_target()
 
     def __init__(self, screen):
-        self.x = randint(600, 750)
-        self.y = randint(300, 550)
-        self.r = randint(2, 50)
+        self.x = randint(600, 760)
+        self.y = randint(300, 560)
+        self.r = randint(10, 30)
         self.color = RED
         self.screen = screen
         self.points = 0
@@ -161,13 +182,13 @@ class Target:
 
     def new_target(self, screen):
         '''Инициализация новой цели.'''
-        self.x = random(600, 780)
-        self.y = random(300, 550)
-        self.r = random(2, 50)
+        self.x = randint(600, 760)
+        self.y = randint(300, 560)
+        self.r = randint(10, 30)
         self.live = 1
 
     def hit(self, points=1):
-        '''Попадание шарика в цель.'''
+        '''Попадание шарика в цель.''' 
         self.points += points
 
     def draw(self):
@@ -184,6 +205,8 @@ pygame.init()
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
 bullet = 0
 balls = []
+hit_time = -1500
+time_counter = 1500
 
 clock = pygame.time.Clock()
 gun = Gun(screen)
@@ -194,6 +217,7 @@ while not finished:
     screen.fill(WHITE)
     gun.draw()
     target.draw()
+    show_score(target.points)
     for b in balls:
         b.draw()
     pygame.display.update()
@@ -214,7 +238,9 @@ while not finished:
         if b.hittest(target) and target.live:
             target.live = 0
             target.hit()
-            target.new_target()
+            target.new_target(screen)
     gun.power_up()
+
+    
 
 pygame.quit()
