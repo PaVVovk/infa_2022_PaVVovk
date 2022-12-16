@@ -1,4 +1,5 @@
 import math
+import time
 from random import choice, randint
 
 import pygame
@@ -38,6 +39,10 @@ class Ball:
         self.vx = 0
         self.vy = 0
         self.color = choice(GAME_COLORS)
+        self.live = 30
+        self.time = 0
+        self.ballbust = 0
+        self.is_moving = True
 
     def move(self):
         '''
@@ -62,21 +67,27 @@ class Ball:
             self.x = WIDTH - self.r
             self.vx *= -1
 
-    def draw(self):
-        pygame.draw.circle(
-            self.screen,
-            self.color,
-            (self.x, self.y),
-            self.r
-        )
+        if self.vx**2 + self.vy**2 < 10:
+            self.is_moving = False
 
-        '''Обводка контуров'''
-        pygame.draw.circle(
-            self.screen,
-            BLACK,
-            (self.x, self.y),
-            self.r, 1
-        )
+    def draw(self):
+        if self.ballbust < 30:
+            pygame.draw.circle(
+                self.screen,
+                self.color,
+                (self.x, self.y),
+                self.r
+            )
+
+            '''Обводка контуров'''
+            pygame.draw.circle(
+                self.screen,
+                BLACK,
+                (self.x, self.y),
+                self.r, 1
+            )
+        if self.is_moving == False:
+            self.ballbust += 1
 
     def hittest(self, obj):
         '''
