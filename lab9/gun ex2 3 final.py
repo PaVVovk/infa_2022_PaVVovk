@@ -113,7 +113,7 @@ class Gun:
         self.f2_power = 10
         self.f2_on = 0
         self.an = 0
-        self.color = GREY
+        self.color = GREEN
         self.x = WIDTH/2
         self.y = HEIGHT - GND - 30
         self.speed = 2
@@ -150,7 +150,7 @@ class Gun:
         if self.f2_on:
             self.color = RED
         else:
-            self.color = YELLOW
+            self.color = GREEN
 
     def draw(self):
         '''
@@ -173,9 +173,9 @@ class Gun:
                   (self.x - gun_w * 0.5 * sin_an, self.y + gun_w * 0.5 * cos_an)]
 
         pygame.draw.polygon(screen, self.color, coords)
-        pygame.draw.polygon(screen, YELLOW, [(self.x - 30, self.y + 25), (self.x + 30, self.y + 25),
+        pygame.draw.polygon(screen, GREEN, [(self.x - 30, self.y + 25), (self.x + 30, self.y + 25),
                                              (self.x + 50, self.y + 5), (self.x - 50, self.y + 5)])
-        pygame.draw.circle(screen, YELLOW, [self.x, self.y + 5], 15)
+        pygame.draw.circle(screen, GREEN, [self.x, self.y + 5], 15)
 
 
     def power_up(self):
@@ -187,114 +187,131 @@ class Gun:
                 self.f2_power += 1
             self.color = RED
         else:
-            self.color = YELLOW
+            self.color = GREEN
 
     def gun_move(self, event):
-        if (pygame.key.get_pressed()[pygame.K_RIGHT]) and (self.x <= WIDTH - 30):
+        if (pygame.key.get_pressed()[pygame.K_d]) and (self.x <= WIDTH - 30):
             self.x += 10
-        elif (pygame.key.get_pressed()[pygame.K_LEFT]) and (self.x >= 30):
+        elif (pygame.key.get_pressed()[pygame.K_a]) and (self.x >= 30):
             self.x -= 10
-
 
 class Target:
 
-    def __init__(self, screen):
-        self.x = randint(WIDTH//2+2*GND, WIDTH-GND) #такие параметры позволяют целям находится в правой половине экрана
-        self.y = randint(100+GND, HEIGHT-100-GND)   #а такие - не появляться ниже уровня земли/верхней рамки
-        self.r = randint(10, 50)
-        self.color = RED
-        self.screen = screen
+    def __init__(self, a = 0):
+
         self.points = 0
+        self.cnt = 0
         self.live = 1
-        self.vy = randint(1, 5) * [-1, 1][randint(0, 1)]
+        self.new_target(a)
 
-
-    def new_target(self):
-        '''Инициализация новой цели.'''
-        self.x = randint(WIDTH//2+2*GND, WIDTH-GND)
-        self.y = randint(100+GND, HEIGHT-100-GND)
-        self.r = randint(10, 50)
+    def new_target(self, v, clr = RED):
+        """ Инициализация новой цели. """
+        self.x = randint(25, WIDTH - 25)
+        self.y = randint(50, 200)
+        self.r = randint(7, 20)
+        self.v = v
         self.live = 1
-        self.vy = randint(1, 5)*[-1, 1][randint(0, 1)]
-
-
-    def hit(self, points=1):
-        '''Попадание шарика в цель.'''
-        self.points += points
-        self.live = 0
-
+        self.color = clr
 
     def move(self):
-        new_y = self.y - self.vy
-        if self.r <= new_y <= 520-self.r:
-            self.y = new_y
-        else:
-            self.vy = -self.vy
-            self.y = self.y - self.vy
+        '''Движение мишеней. '''
+        if self.x + self.v > WIDTH - self.r:
+            self.x = WIDTH - self.r
+            self.v *= -1
+
+        if self.x + self.v < self.r:
+            self.x = self.r
+            self.v *= -1
+
+        self.x += self.v
+
+    def drop(self):
+        '''Сброс бомбочек с мишеней'''
+        global bombs
+        b = Bomb(self.x, self.y)
+        bombs.append(b)
+
+    def hit(self, points=1):
+        """Попадание шарика в цель."""
+        self.points += points
 
     def draw(self):
-        '''Рисует цель на экране, если она не поражена'''
-        if self.live:
-            pygame.draw.circle(
-                self.screen,
-                self.color,
-                (self.x, self.y),
-                self.r
-            )
-            pygame.draw.circle(
-                self.screen,
-                BLACK,
-                (self.x, self.y),
-                self.r, 1
-            )
+        self.cnt += 1
+        pygame.draw.circle(screen, self.color, (self.x, self.y), self.r)
 
 
-def target_coll(target1, target2):
-    '''
-    Исключает возможность пересечения двух целей.
-    '''
-    x1, y1, r1 = target1.x, target1.y, target1.r
-    x2, y2, r2 = target2.x, target2.y, target2.r
 
-    while abs((x1-x2)) <= abs((r1+r2)):
-        target2.new_target()
-        target1.new_target()
-        x1, y1, r1 = target1.x, target1.y, target1.r
-        x2, y2, r2 = target2.x, target2.y, target2.r
+class Bomb:
+    def __init__(self, x_targ, y_targ):
+        self.live = 1
+        self.color = GREY
+        self.x = x_targ
+        self.y = y_targ
+        self.r = 7
 
-    return target1, target2
+    def move(self):
+        self.y += 1
 
+    def hit(self, obj):
+        if (self.x - obj.x) ** 2 + (self.y - obj.y) ** 2 <= (self.r + obj.r + 30) ** 2:
+            return True
+        return False
+
+    def hit(self):
+        self.color = BLACK
+        self.y += 300
+
+    def draw(self):
+        pygame.draw.circle(screen, self.color, (self.x, self.y), 7)
+
+    def BOOM(self, obj):
+        if (obj.x - self.x) ** 2 + (obj.y - self.y) ** 2 <= 400:
+            return True
+        return False
 
 pygame.init()
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
-
 bullet = 0
 balls = []
+bombs = []
 
 clock = pygame.time.Clock()
 gun = Gun(screen)
-
-target1 = Target(screen)
-target2 = Target(screen)
-target1, target2 = target_coll(target1, target2)
-
+target = Target()
+extrtarget = Target()
 finished = False
+a = 0
+flag = 0
 
 
 while not finished:
-    screen.fill(WHITE)
-    cnt = ARIAL.render(f"{target1.points + target2.points}", True, BLACK)
-    screen.blit(cnt, (50, 50))
+    if flag == 1:
+        pygame.init()
+        screen = pygame.display.set_mode((WIDTH, HEIGHT))
+        bullet = 0
+        balls = []
+        bombs = []
 
+        clock = pygame.time.Clock()
+        gun = Gun(screen)
+        target = Target()
+        extrtarget = Target()
+        finished = False
+        a = 0
+        flag = 0
+    screen.fill(WHITE)
     gun.draw()
-    target1.draw()
-    target2.draw()
+    target.draw()
+    extrtarget.draw()
+    for bmb in bombs:
+        bmb.draw()
     for b in balls:
         b.draw()
     pygame.display.update()
 
     clock.tick(FPS)
-
+    if (pygame.key.get_pressed()[pygame.K_d]) or (pygame.key.get_pressed()[pygame.K_a]):
+        gun.gun_move(event)
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             finished = True
@@ -306,41 +323,28 @@ while not finished:
             gun.targetting(event)
 
 
-    target1.move()
-    target2.move()
-
     for b in balls:
+        for bmb in bombs:
+            bmb.move()
+            if b.hittest(bmb):
+                bmb.live = 0
+                bmb.hit()
+            if bmb.BOOM(gun):
+                flag = 1
         b.move()
-        if b.hittest(target1) and target1.live:
-            target1.hit()
-        if b.hittest(target2) and target2.live:
-            target2.hit()
-        if not target1.live and not target2.live:
-            target1.new_target()
-            target2.new_target()
-            target1, target2 = target_coll(target1, target2)
-            text = ARIAL.render(f"Вы уничтожили цели за {bullet} выстрелов", True, BLACK)
-            bullet = 0
-            balls = []
+        if b.hittest(target) and target.live:
+            target.live = 0
+            target.hit()
+            target.new_target(0)
+        if b.hittest(extrtarget) and extrtarget.live:
+            extrtarget.live = 0
+            extrtarget.hit()
+            extrtarget.new_target(randint(7, 13), GREY)
 
-            '''Вывод надписи на экран'''
-            for i in range(100):
-                screen.fill(WHITE)
-                screen.blit(text, (300, 300))
-                gun.draw()
 
-                b.draw()
-                pygame.display.update()
-
-                clock.tick(FPS)
-                for event in pygame.event.get():
-                    if event.type == pygame.QUIT:
-                        finished = True
-                    elif event.type == pygame.MOUSEMOTION:
-                        gun.targetting(event)
-
-                b.move()
-
+    extrtarget.move()
+    if randint(0, 100) > 98:
+        extrtarget.drop()
     gun.power_up()
 
 pygame.quit()
