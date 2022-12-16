@@ -67,6 +67,10 @@ class Ball:
             self.x = WIDTH - self.r
             self.vx *= -1
 
+        if self.x + self.vx <= self.r:
+            self.x = self.r
+            self.vx *= -1
+
         if self.vx**2 + self.vy**2 < 10:
             self.is_moving = False
 
@@ -110,6 +114,9 @@ class Gun:
         self.f2_on = 0
         self.an = 0
         self.color = GREY
+        self.x = WIDTH/2
+        self.y = HEIGHT - GND - 30
+        self.speed = 2
 
     def fire2_start(self, event):
         '''
@@ -118,30 +125,32 @@ class Gun:
         self.f2_on = 1
 
     def fire2_end(self, event):
-        '''
-        Выстрел мячом.
+        """Выстрел мячом.
         Происходит при отпускании кнопки мыши.
         Начальные значения компонент скорости мяча vx и vy зависят от положения мыши.
-        '''
+        """
         global balls, bullet
         bullet += 1
-        new_ball = Ball(self.screen)
+        new_ball = Ball(self.screen, self.x, self.y)
         new_ball.r += 5
-        self.an = math.atan2((event.pos[1] - new_ball.y), (event.pos[0] - new_ball.x))
+        self.an = math.atan2((event.pos[1]-self.y), (event.pos[0]-self.x))
         new_ball.vx = self.f2_power * math.cos(self.an)
-        new_ball.vy = -self.f2_power * math.sin(self.an)
+        new_ball.vy = - self.f2_power * math.sin(self.an)
         balls.append(new_ball)
         self.f2_on = 0
-        self.f2_power = 10
+        self.f2_power = 30
 
     def targetting(self, event):
-        '''Прицеливание. Зависит от положения мыши.'''
+        """Прицеливание. Зависит от положения мыши."""
         if event:
-            self.an = math.atan2((event.pos[1] - 450), (event.pos[0] - 20))
+            if event.pos[0]-self.x != 0:
+                self.an = math.atan((event.pos[1]-self.y) / (event.pos[0]-self.x))
+            else:
+                self.an = math.atan((event.pos[1] - self.y) / 0.0001)
         if self.f2_on:
             self.color = RED
         else:
-            self.color = GREY
+            self.color = YELLOW
 
     def draw(self):
         '''
@@ -149,10 +158,25 @@ class Gun:
         Длина пушки пропорциональна силе выстрела,
         а цвет меняется во время прицеливания.
         '''
-        gun_len = 15 + self.f2_power // 2
-        x_end = 20 + gun_len * math.cos(self.an)
-        y_end = 450 + gun_len * math.sin(self.an)
-        pygame.draw.line(self.screen, self.color, (20, 450), (x_end, y_end), 10)
+        gun_w = 10
+        gun_l = self.f2_power
+        x0, y0 = pygame.mouse.get_pos()
+
+        sin_an = math.sin(self.an)
+        cos_an = math.cos(self.an)
+        if self.x > x0:
+            sin_an = -sin_an
+            cos_an = -cos_an
+        coords = [(self.x + gun_w * 0.5 * sin_an, self.y - gun_w * 0.5 * cos_an),
+                  (self.x + gun_w * 0.5 * sin_an + gun_l * cos_an, self.y - gun_w * 0.5 * cos_an + gun_l * sin_an),
+                  (self.x - gun_w * 0.5 * sin_an + gun_l * cos_an, self.y + gun_w * 0.5 * cos_an + gun_l * sin_an),
+                  (self.x - gun_w * 0.5 * sin_an, self.y + gun_w * 0.5 * cos_an)]
+
+        pygame.draw.polygon(screen, self.color, coords)
+        pygame.draw.polygon(screen, YELLOW, [(self.x - 30, self.y + 25), (self.x + 30, self.y + 25),
+                                             (self.x + 50, self.y + 5), (self.x - 50, self.y + 5)])
+        pygame.draw.circle(screen, YELLOW, [self.x, self.y + 5], 15)
+
 
     def power_up(self):
         '''
@@ -163,7 +187,13 @@ class Gun:
                 self.f2_power += 1
             self.color = RED
         else:
-            self.color = GREY
+            self.color = YELLOW
+
+    def gun_move(self, event):
+        if (pygame.key.get_pressed()[pygame.K_RIGHT]) and (self.x <= WIDTH - 30):
+            self.x += 10
+        elif (pygame.key.get_pressed()[pygame.K_LEFT]) and (self.x >= 30):
+            self.x -= 10
 
 
 class Target:
